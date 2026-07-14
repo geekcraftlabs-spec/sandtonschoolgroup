@@ -38,6 +38,28 @@ function getUrlParams() {
   };
 }
 
+// Helper to safely extract error message from unknown error
+function getErrorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    if ("message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+    if ("text" in error && typeof error.text === "string") {
+      return error.text;
+    }
+    if ("error" in error && typeof error.error === "string") {
+      return error.error;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Unknown error";
+    }
+  }
+  return "Unknown error";
+}
+
 export default function SubscribePage() {
   const initialParams = useMemo(() => getUrlParams(), []);
   const isSuccess = initialParams.code && initialParams.status === "success";
@@ -59,7 +81,7 @@ export default function SubscribePage() {
 
   const today = useMemo(() => {
     const d = new Date();
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split("T")[0];
   }, []);
 
   const proRataAmount = useMemo(() => {
@@ -75,52 +97,54 @@ export default function SubscribePage() {
   }, []);
 
   // EmailJS sending function
-  const sendConfirmationEmail = useCallback(async (data: PendingSubscription) => {
-    setEmailSending(true);
-    setEmailError(null);
+  const sendConfirmationEmail = useCallback(
+    async (data: PendingSubscription) => {
+      setEmailSending(true);
+      setEmailError(null);
 
-    try {
-      // Initialize EmailJS with your public key
-      emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "6oVPuxhAzJ6yjPMBR");
+      try {
+        // Initialize EmailJS
+        emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "6oVPuxhAzJ6yjPMBR");
 
-      const templateParams = {
-        customer_email: data.parentEmail,
-        parent_name: data.parentName,
-        parent_email: data.parentEmail,
-        student_name: data.studentName,
-        student_email: data.studentEmail,
-        school_email: data.schoolEmail,
-        password: data.password,
-        order_code: data.orderCode || orderCode,
-        grade: data.studentGrade,
-        amount: `R${data.total?.toFixed(2) || data.proRataAmount?.toFixed(2)}`,
-        login_url: `${window.location.origin}/login`,
-        site_name: "Sandton School Group",
-        subscription_date: new Date().toLocaleDateString(),
-      };
+        const templateParams = {
+          customer_email: data.parentEmail,
+          parent_name: data.parentName,
+          parent_email: data.parentEmail,
+          student_name: data.studentName,
+          student_email: data.studentEmail,
+          school_email: data.schoolEmail,
+          password: data.password,
+          order_code: data.orderCode || orderCode,
+          grade: data.studentGrade,
+          amount: `R${data.total?.toFixed(2) || data.proRataAmount?.toFixed(2)}`,
+          login_url: `${window.location.origin}/login`,
+          site_name: "Sandton School Group",
+          subscription_date: new Date().toLocaleDateString(),
+        };
 
-      console.log("📧 Sending email to:", data.parentEmail);
+        console.log("📧 Sending email to:", data.parentEmail);
+        console.log("📧 Template Params:", templateParams);
 
-      const response = await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "template_subscription",
-        templateParams
-      );
+        const response = await emailjs.send(
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "template_subscription",
+          templateParams
+        );
 
-      console.log("✅ Email sent successfully:", response);
-      setEmailSent(true);
-    } catch (error: unknown) {
-      console.error("❌ Failed to send email:", error);
-      const errMsg = error && typeof error === 'object' && 'text' in error
-        ? (error.text as string)
-        : "Failed to send email";
-      setEmailError(errMsg);
-      // Still show success page even if email fails
-      setEmailSent(true);
-    } finally {
-      setEmailSending(false);
-    }
-  }, [orderCode]);
+        console.log("✅ Email sent successfully:", response);
+        setEmailSent(true);
+      } catch (error: unknown) {
+        console.error("❌ FULL EMAILJS ERROR:", error);
+        const errorMessage = getErrorMessage(error);
+        console.error("❌ EmailJS error details:", JSON.stringify(error, null, 2));
+        setEmailError(`Email failed: ${errorMessage}`);
+        setEmailSent(true);
+      } finally {
+        setEmailSending(false);
+      }
+    },
+    [orderCode]
+  );
 
   // Handle success – load data and send email
   useEffect(() => {
@@ -234,8 +258,8 @@ export default function SubscribePage() {
           )}
 
           {emailError && (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-xl text-sm mb-4">
-              ⚠️ Email could not be sent. Please copy the credentials below.
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm mb-4">
+              ❌ {emailError}
             </div>
           )}
 
