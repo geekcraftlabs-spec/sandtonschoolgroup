@@ -7,12 +7,17 @@ import { useState } from "react";
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, getTotal, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   const handleCheckout = async () => {
-    if (!customerEmail || !customerName) {
+    if (!customerName || !customerEmail) {
       alert("Please enter your name and email");
+      return;
+    }
+    if (items.length === 0) {
+      alert("Your cart is empty");
       return;
     }
 
@@ -21,6 +26,7 @@ export default function CartPage() {
     const orderData = {
       customerName,
       customerEmail,
+      customerPhone,
       items: items.map((item) => ({
         name: item.name,
         price: item.price,
@@ -31,7 +37,7 @@ export default function CartPage() {
     };
 
     try {
-      const response = await fetch("/api/create-uniform-order", {
+      const response = await fetch("/api/uniform/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
@@ -46,8 +52,7 @@ export default function CartPage() {
         alert("Payment failed: " + result.error);
         setIsCheckingOut(false);
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
       alert("Failed to process payment. Please try again.");
       setIsCheckingOut(false);
     }
@@ -55,7 +60,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-20 min-h-[60vh] flex items-center justify-center px-6">
+      <div className="pt-28 min-h-[60vh] flex items-center justify-center px-6">   {/* pt-20 → pt-28 */}
         <div className="text-center">
           <div className="text-6xl mb-4">🛒</div>
           <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">Your Cart is Empty</h1>
@@ -69,7 +74,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="pt-20 min-h-[60vh] px-6 md:px-8 py-8">
+    <div className="pt-28 min-h-[60vh] px-6 md:px-8 py-8">   {/* pt-20 → pt-28 */}
       <div className="max-w-4xl mx-auto">
         <h1 className="font-serif text-3xl font-bold text-[#003057] mb-6">Shopping Cart</h1>
 
@@ -140,8 +145,15 @@ export default function CartPage() {
               onChange={(e) => setCustomerEmail(e.target.value)}
               className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
             />
+            <input
+              type="tel"
+              placeholder="Your Phone (for collection notification)"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
+            />
             <div className="bg-blue-50 text-blue-700 text-sm p-3 rounded-xl">
-              ℹ️ You&apos;ll receive an email confirmation when your order is ready for collection.
+              ℹ️ You&apos;ll receive a WhatsApp confirmation when your order is ready.
             </div>
           </div>
 
