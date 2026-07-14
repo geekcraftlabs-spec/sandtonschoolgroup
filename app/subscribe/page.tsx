@@ -74,14 +74,14 @@ export default function SubscribePage() {
     return Math.round(dailyRate * remainingDays * 100) / 100;
   }, []);
 
-  // EmailJS sending function – define before useEffect
+  // EmailJS sending function
   const sendConfirmationEmail = useCallback(async (data: PendingSubscription) => {
     setEmailSending(true);
     setEmailError(null);
 
     try {
-      // Initialize EmailJS
-      emailjs.init("EQYdepR-heRjQSlgP");
+      // Initialize EmailJS with your public key
+      emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "6oVPuxhAzJ6yjPMBR");
 
       const templateParams = {
         customer_email: data.parentEmail,
@@ -102,8 +102,8 @@ export default function SubscribePage() {
       console.log("📧 Sending email to:", data.parentEmail);
 
       const response = await emailjs.send(
-        "service_acj5qey",
-        "template_subscription",
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "template_subscription",
         templateParams
       );
 
@@ -115,6 +115,7 @@ export default function SubscribePage() {
         ? (error.text as string)
         : "Failed to send email";
       setEmailError(errMsg);
+      // Still show success page even if email fails
       setEmailSent(true);
     } finally {
       setEmailSending(false);
@@ -313,7 +314,7 @@ export default function SubscribePage() {
     );
   }
 
-  // Main form (unchanged)
+  // Main form
   return (
     <div className="pt-20" suppressHydrationWarning>
       <section className="relative min-h-[30vh] flex items-center overflow-hidden">
