@@ -46,10 +46,10 @@ export default function CartPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Save pending order
+        // Save pending order (optional)
         localStorage.setItem("pendingUniformOrder", JSON.stringify(result.pendingOrder));
 
-        // Create a hidden form and submit it (same as subscription)
+        // Create hidden form and submit (exactly like subscription)
         const form = document.createElement("form");
         form.method = "POST";
         form.action = result.actionUrl;
