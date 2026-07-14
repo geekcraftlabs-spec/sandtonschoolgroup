@@ -46,8 +46,27 @@ export default function CartPage() {
       const result = await response.json();
 
       if (result.success) {
+        // Save pending order
         localStorage.setItem("pendingUniformOrder", JSON.stringify(result.pendingOrder));
-        window.location.href = result.actionUrl;
+
+        // Create a hidden form and submit it (same as subscription)
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = result.actionUrl;
+
+        const pfData = result.pfData;
+        for (const key in pfData) {
+          if (pfData.hasOwnProperty(key)) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = pfData[key as keyof typeof pfData]?.toString() || "";
+            form.appendChild(input);
+          }
+        }
+
+        document.body.appendChild(form);
+        form.submit();
       } else {
         alert("Payment failed: " + result.error);
         setIsCheckingOut(false);
@@ -60,7 +79,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-28 min-h-[60vh] flex items-center justify-center px-6">   {/* pt-20 → pt-28 */}
+      <div className="pt-28 min-h-[60vh] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-6xl mb-4">🛒</div>
           <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">Your Cart is Empty</h1>
@@ -74,10 +93,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="pt-28 min-h-[60vh] px-6 md:px-8 py-8">   {/* pt-20 → pt-28 */}
+    <div className="pt-28 min-h-[60vh] px-6 md:px-8 py-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="font-serif text-3xl font-bold text-[#003057] mb-6">Shopping Cart</h1>
 
+        {/* Cart items rendering (same as before) */}
         <div className="space-y-4 mb-8">
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-xl p-4 shadow-md border border-gray-100 flex items-center gap-4">
@@ -114,6 +134,7 @@ export default function CartPage() {
           ))}
         </div>
 
+        {/* Order summary & form (same as before) */}
         <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
           <div className="flex justify-between text-lg mb-2">
             <span>Subtotal:</span>

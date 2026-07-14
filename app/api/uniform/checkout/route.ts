@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       custom_str4: customerPhone || "N/A",
       custom_str5: items.map((i) => i.name).join("|"),
       subscription_type: 2,
+      test_mode: 1,   // add this
     };
 
     const signature = generatePayFastSignature(pfData, passphrase);
