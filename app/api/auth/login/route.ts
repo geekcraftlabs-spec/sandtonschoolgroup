@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import dbConnect from "@/app/lib/mongodb";
 import Subscription from "@/app/models/Subscription";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-me-in-production";
+const JWT_SECRET = process.env.JWT_SECRET || "your-very-secret-key";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Connect to database
     await dbConnect();
 
-    // Find the subscription by parent email or school email
     const subscription = await Subscription.findOne({
       $or: [{ parentEmail: email }, { schoolEmail: email }],
       status: "active",
@@ -32,7 +30,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify password
     if (password !== subscription.password) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
@@ -40,7 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         userId: subscription._id,

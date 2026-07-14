@@ -65,6 +65,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
+                placeholder="your@email.com"
                 suppressHydrationWarning
               />
             </div>
@@ -77,6 +78,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
+                placeholder="Enter your password"
                 suppressHydrationWarning
               />
             </div>

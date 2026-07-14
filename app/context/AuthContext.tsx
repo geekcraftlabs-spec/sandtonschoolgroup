@@ -4,19 +4,19 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 interface User {
   id: string;
   email: string;
+  schoolEmail: string;
   studentName: string;
   studentEmail: string;
-  schoolEmail: string;
-  role: "parent" | "student";
+  role: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, user: User) => void;
-  logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,37 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount – use lazy initialization pattern
   useEffect(() => {
-    let isMounted = true;
-
-    const loadAuth = () => {
+    const storedToken = localStorage.getItem("authToken");
+    const storedUser = localStorage.getItem("user");
+    if (storedToken && storedUser) {
       try {
-        const storedToken = localStorage.getItem("authToken");
-        const storedUser = localStorage.getItem("user");
-        if (storedToken && storedUser) {
-          if (isMounted) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-            setIsAuthenticated(true);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load auth:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        setIsAuthenticated(true);
+      } catch {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
       }
-    };
-
-    // Use setTimeout to defer state updates, satisfying ESLint
-    const timeoutId = setTimeout(loadAuth, 0);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
+    }
+    setIsLoading(false);
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -77,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, isLoading }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -85,8 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 }
