@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
-// Type definitions for uniform order items
 interface UniformItem {
   name: string;
   price: number;
@@ -17,7 +16,6 @@ interface UniformOrderData {
   total: number;
 }
 
-// Helper function to generate PayFast signature
 function generatePayFastSignature(
   data: Record<string, string | number>,
   passphrase: string
@@ -35,19 +33,6 @@ function generatePayFastSignature(
     pfOutput += `&passphrase=${encodeURIComponent(passphrase.trim())}`;
   }
   return crypto.createHash("md5").update(pfOutput).digest("hex");
-}
-
-// WhatsApp notification helper (reuse from subscription)
-async function sendWhatsAppNotification(phone: string, message: string) {
-  try {
-    const apiKey = process.env.CALLMEBOT_API_KEY || "3802479";
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
-    const response = await fetch(url);
-    const result = await response.text();
-    console.log("📲 WhatsApp notification sent:", result);
-  } catch (error) {
-    console.error("❌ Failed to send WhatsApp notification:", error);
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -83,7 +68,7 @@ export async function POST(request: NextRequest) {
       item_name: itemName,
       item_description: itemDescription,
       email_confirmation: "1",
-      custom_int1: 2, // 2 indicates uniform order
+      custom_int1: 2,
       custom_str1: shortCode,
       custom_str2: customerEmail,
       custom_str3: customerName,
@@ -96,30 +81,34 @@ export async function POST(request: NextRequest) {
     const pfDataWithSignature = { ...pfData, signature };
     const actionUrl = process.env.NEXT_PUBLIC_PAYFAST_SANDBOX_URL || "https://sandbox.payfast.co.za/eng/process";
 
-    const pendingOrder = {
-      orderCode: shortCode,
-      customerName,
-      customerEmail,
-      customerPhone,
-      items,
-      total,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+    // Log for debugging
+    console.log("🚀 Uniform order created:", shortCode);
+    console.log("🔑 Signature:", signature);
 
-    // Send WhatsApp notification to admin
+    // Send WhatsApp
     const orderSummary = items.map((i) => `${i.quantity}x ${i.name} (${i.size})`).join(", ");
     const adminMessage = `🛍️ NEW UNIFORM ORDER!\n\nOrder: ${shortCode}\nCustomer: ${customerName}\nEmail: ${customerEmail}\nItems: ${orderSummary}\nTotal: R${total.toFixed(2)}`;
-    await sendWhatsAppNotification("27684858415", adminMessage);
-
-    console.log("✅ Uniform order created:", shortCode);
+    try {
+      const apiKey = process.env.CALLMEBOT_API_KEY || "3802479";
+      await fetch(`https://api.callmebot.com/whatsapp.php?phone=27684858415&text=${encodeURIComponent(adminMessage)}&apikey=${apiKey}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) { /* ignore */ }
 
     return NextResponse.json({
       success: true,
       actionUrl,
       pfData: pfDataWithSignature,
       orderCode: shortCode,
-      pendingOrder,
+      pendingOrder: {
+        orderCode: shortCode,
+        customerName,
+        customerEmail,
+        customerPhone,
+        items,
+        total,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error("❌ Uniform checkout error:", error);
