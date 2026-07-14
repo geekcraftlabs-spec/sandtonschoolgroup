@@ -4,10 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import emailjs from "@emailjs/browser";
 
-// Monthly subscription fee – R200
 const MONTHLY_FEE = 200;
 
-// Types
 interface PendingSubscription {
   orderCode: string;
   parentName: string;
@@ -28,7 +26,6 @@ interface PendingSubscription {
   _id?: string;
 }
 
-// Helper to check URL params
 function getUrlParams() {
   if (typeof window === "undefined") return { code: null, status: null };
   const params = new URLSearchParams(window.location.search);
@@ -38,24 +35,13 @@ function getUrlParams() {
   };
 }
 
-// Helper to safely extract error message from unknown error
 function getErrorMessage(error: unknown): string {
   if (typeof error === "string") return error;
   if (error && typeof error === "object") {
-    if ("message" in error && typeof error.message === "string") {
-      return error.message;
-    }
-    if ("text" in error && typeof error.text === "string") {
-      return error.text;
-    }
-    if ("error" in error && typeof error.error === "string") {
-      return error.error;
-    }
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return "Unknown error";
-    }
+    if ("message" in error && typeof error.message === "string") return error.message;
+    if ("text" in error && typeof error.text === "string") return error.text;
+    if ("error" in error && typeof error.error === "string") return error.error;
+    try { return JSON.stringify(error); } catch { return "Unknown error"; }
   }
   return "Unknown error";
 }
@@ -79,24 +65,15 @@ export default function SubscribePage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const processedRef = useRef(false);
 
-  const today = useMemo(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0];
-  }, []);
-
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const proRataAmount = useMemo(() => {
     const currentDate = new Date();
-    const daysInMonth = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1,
-      0
-    ).getDate();
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const remainingDays = daysInMonth - currentDate.getDate() + 1;
     const dailyRate = MONTHLY_FEE / daysInMonth;
     return Math.round(dailyRate * remainingDays * 100) / 100;
   }, []);
 
-  // EmailJS sending function
   const sendConfirmationEmail = useCallback(
     async (data: PendingSubscription) => {
       setEmailSending(true);
@@ -106,10 +83,11 @@ export default function SubscribePage() {
         // Initialize EmailJS
         emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "6oVPuxhAzJ6yjPMBR");
 
+        // IMPORTANT: The recipient email is set in the EmailJS template's "To" field as {{parent_email}}
+        // This variable must match exactly what's in the template
         const templateParams = {
-          customer_email: data.parentEmail,
           parent_name: data.parentName,
-          parent_email: data.parentEmail,
+          parent_email: data.parentEmail,  // This must be set as "To" in the EmailJS template
           student_name: data.studentName,
           student_email: data.studentEmail,
           school_email: data.schoolEmail,
@@ -125,6 +103,7 @@ export default function SubscribePage() {
         console.log("📧 Sending email to:", data.parentEmail);
         console.log("📧 Template Params:", templateParams);
 
+        // Send email – the recipient is set in the EmailJS template's "To" field using {{parent_email}}
         const response = await emailjs.send(
           process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
           process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "template_subscription",
@@ -146,7 +125,6 @@ export default function SubscribePage() {
     [orderCode]
   );
 
-  // Handle success – load data and send email
   useEffect(() => {
     if (isSuccess && !processedRef.current) {
       processedRef.current = true;
@@ -156,8 +134,6 @@ export default function SubscribePage() {
           const data: PendingSubscription = JSON.parse(pending);
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setSubscriptionData(data);
-
-          // Save credentials for login
           const credentials = {
             email: data.parentEmail,
             password: data.password,
@@ -166,8 +142,6 @@ export default function SubscribePage() {
             schoolEmail: data.schoolEmail,
           };
           localStorage.setItem("userCredentials", JSON.stringify(credentials));
-
-          // Send email
           sendConfirmationEmail(data);
         } catch (e) {
           console.error("Failed to load subscription data:", e);
@@ -235,45 +209,26 @@ export default function SubscribePage() {
     }
   };
 
-  // Success UI
   if (isSuccess && subscriptionData) {
     return (
       <div className="pt-20 min-h-[70vh] flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-6">🎉</div>
-          <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">
-            Subscription Successful!
-          </h1>
-
-          {emailSending && (
-            <div className="text-gray-500 text-sm mb-4">
-              <span className="animate-pulse">📧 Sending confirmation email to {subscriptionData.parentEmail}...</span>
-            </div>
-          )}
-
+          <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">Subscription Successful!</h1>
+          {emailSending && <div className="text-gray-500 text-sm mb-4">📧 Sending confirmation email...</div>}
           {emailSent && !emailSending && (
             <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl text-sm mb-4">
               ✅ Confirmation email sent to <strong>{subscriptionData.parentEmail}</strong>
             </div>
           )}
-
           {emailError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm mb-4">
-              ❌ {emailError}
-            </div>
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm mb-4">❌ {emailError}</div>
           )}
-
-          <p className="text-gray-600 mb-6">
-            Your school portal account has been created. Login credentials have been sent to your email.
-          </p>
-
+          <p className="text-gray-600 mb-6">Your school portal account has been created. Login credentials have been sent to your email.</p>
           <div className="bg-gray-50 rounded-xl p-4 text-left mb-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-700 font-semibold">📲 Test Mode Note:</p>
-              <p className="text-sm text-blue-600 mt-1">
-                Your login credentials are displayed below and have been sent to <strong>{subscriptionData.parentEmail}</strong>.
-                Please save them for future logins.
-              </p>
+              <p className="text-sm text-blue-600 mt-1">Your login credentials are displayed below and have been sent to <strong>{subscriptionData.parentEmail}</strong>. Please save them.</p>
             </div>
             <p className="text-sm text-gray-500">Student Login:</p>
             <p className="font-mono text-sm text-[#003057]">{subscriptionData.schoolEmail}</p>
@@ -286,264 +241,118 @@ export default function SubscribePage() {
             <p className="text-sm text-gray-500 mt-2">Order Reference:</p>
             <p className="font-mono text-sm text-[#003057]">{orderCode || subscriptionData.orderCode}</p>
           </div>
-
           <div className="space-y-3">
-            <Link
-              href="/login"
-              className="block bg-[#C41230] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#a00f27] transition shadow-lg"
-            >
-              🔐 Log In to Your Portal
-            </Link>
-            <Link
-              href="/"
-              className="block border border-[#003057] text-[#003057] px-8 py-3 rounded-full font-semibold hover:bg-[#003057] hover:text-white transition"
-            >
-              Go to Homepage
-            </Link>
+            <Link href="/login" className="block bg-[#C41230] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#a00f27] transition shadow-lg">🔐 Log In to Your Portal</Link>
+            <Link href="/" className="block border border-[#003057] text-[#003057] px-8 py-3 rounded-full font-semibold hover:bg-[#003057] hover:text-white transition">Go to Homepage</Link>
           </div>
         </div>
       </div>
     );
   }
 
-  // Cancelled UI
   if (isCancelled) {
     return (
       <div className="pt-20 min-h-[70vh] flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center">
           <div className="text-6xl mb-6">😕</div>
-          <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">
-            Payment Cancelled
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Your subscription payment was cancelled. You can try again whenever
-            you&apos;re ready.
-          </p>
+          <h1 className="font-serif text-3xl font-bold text-[#003057] mb-4">Payment Cancelled</h1>
+          <p className="text-gray-600 mb-6">Your subscription payment was cancelled. You can try again whenever you&apos;re ready.</p>
           <div className="space-y-3">
-            <Link
-              href="/subscribe"
-              className="block bg-[#003057] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#002244] transition"
-            >
-              Try Again
-            </Link>
-            <Link
-              href="/"
-              className="block border border-[#003057] text-[#003057] px-8 py-3 rounded-full font-semibold hover:bg-[#003057] hover:text-white transition"
-            >
-              Go to Homepage
-            </Link>
+            <Link href="/subscribe" className="block bg-[#003057] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#002244] transition">Try Again</Link>
+            <Link href="/" className="block border border-[#003057] text-[#003057] px-8 py-3 rounded-full font-semibold hover:bg-[#003057] hover:text-white transition">Go to Homepage</Link>
           </div>
         </div>
       </div>
     );
   }
 
-  // Main form
   return (
     <div className="pt-20" suppressHydrationWarning>
       <section className="relative min-h-[30vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
-          <Image
-            src="/images/home.png"
-            alt="Subscribe"
-            fill
-            className="object-cover"
-            sizes="100vw"
-          />
+          <Image src="/images/home.png" alt="Subscribe" fill className="object-cover" sizes="100vw" />
           <div className="absolute inset-0 bg-[#003057]/70" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-8 py-12 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-white">
-            School Portal
-          </h1>
-          <p className="text-white/70 text-lg mt-2 max-w-2xl mx-auto">
-            Access the Sandton School Group digital ecosystem – subscribe today
-          </p>
+          <h1 className="font-serif text-4xl md:text-5xl font-bold text-white">School Portal</h1>
+          <p className="text-white/70 text-lg mt-2 max-w-2xl mx-auto">Access the Sandton School Group digital ecosystem &ndash; subscribe today</p>
         </div>
       </section>
-
       <section className="max-w-4xl mx-auto px-6 md:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 text-center">
             <div className="text-4xl mb-3">🏫</div>
             <h3 className="font-bold text-[#003057]">School Platform</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Grades, reports, learning materials
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Grades, reports, learning materials</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 text-center">
             <div className="text-4xl mb-3">📝</div>
             <h3 className="font-bold text-[#003057]">Quiz App</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Interactive learning &amp; assessments
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Interactive learning &amp; assessments</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 text-center">
             <div className="text-4xl mb-3">🍔</div>
             <h3 className="font-bold text-[#003057]">Tuckshop</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Online ordering for students
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Online ordering for students</p>
           </div>
         </div>
-
         <div className="bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100">
-          <h2 className="font-serif text-2xl font-bold text-[#003057] mb-2 text-center">
-            Subscribe Now
-          </h2>
-          <p className="text-gray-400 text-center text-sm mb-6">
-            R{proRataAmount.toFixed(2)} for the remaining days of this month
-            <br />
-            <span className="text-xs text-gray-300">(R{MONTHLY_FEE} per month, pro-rata calculated from today)</span>
-          </p>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-sm text-blue-700 text-center">
-            🔒 Secure payment via PayFast
-          </div>
-
+          <h2 className="font-serif text-2xl font-bold text-[#003057] mb-2 text-center">Subscribe Now</h2>
+          <p className="text-gray-400 text-center text-sm mb-6">R{proRataAmount.toFixed(2)} for the remaining days of this month<br /><span className="text-xs text-gray-300">(R{MONTHLY_FEE} per month, pro-rata calculated from today)</span></p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-sm text-blue-700 text-center">🔒 Secure payment via PayFast</div>
           <form onSubmit={handleSubmit} className="space-y-5" suppressHydrationWarning>
-            {/* Parent Details */}
             <div className="border-b border-gray-200 pb-5">
-              <h3 className="font-semibold text-[#003057] mb-4 flex items-center gap-2">
-                <span className="text-[#C41230]">👤</span> Parent Details
-              </h3>
+              <h3 className="font-semibold text-[#003057] mb-4 flex items-center gap-2"><span className="text-[#C41230]">👤</span> Parent Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={parentName}
-                    onChange={(e) => setParentName(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    value={parentEmail}
-                    onChange={(e) => setParentEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none" />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    value={parentPhone}
-                    onChange={(e) => setParentPhone(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <input type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none" />
                 </div>
               </div>
             </div>
-
-            {/* Student Details */}
             <div className="border-b border-gray-200 pb-5">
-              <h3 className="font-semibold text-[#003057] mb-4 flex items-center gap-2">
-                <span className="text-[#C41230]">🎓</span> Student Details
-              </h3>
+              <h3 className="font-semibold text-[#003057] mb-4 flex items-center gap-2"><span className="text-[#C41230]">🎓</span> Student Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email (different from parent) *
-                  </label>
-                  <input
-                    type="email"
-                    value={studentEmail}
-                    onChange={(e) => setStudentEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (different from parent) *</label>
+                  <input type="email" value={studentEmail} onChange={(e) => setStudentEmail(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Grade *
-                  </label>
-                  <select
-                    value={studentGrade}
-                    onChange={(e) => setStudentGrade(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade *</label>
+                  <select value={studentGrade} onChange={(e) => setStudentGrade(e.target.value)} required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#003057] focus:border-transparent outline-none">
                     <option value="">Select Grade</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g) => (
-                      <option key={g} value={g}>
-                        Grade {g}
-                      </option>
-                    ))}
+                    {[1,2,3,4,5,6,7,8,9,10,11,12].map((g) => <option key={g} value={g}>Grade {g}</option>)}
                   </select>
                 </div>
                 <div className="flex items-end">
                   <div className="bg-blue-50 rounded-xl p-3 w-full border border-blue-200">
-                    <p className="text-xs text-gray-600">
-                      📅 <strong>Start Date:</strong> {today}
-                      <br />
-                      <span className="text-gray-400">(Subscription starts today)</span>
-                    </p>
+                    <p className="text-xs text-gray-600">📅 <strong>Start Date:</strong> {today}<br /><span className="text-gray-400">(Subscription starts today)</span></p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Pricing Summary */}
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <h4 className="font-semibold text-[#003057] text-sm mb-2">
-                Subscription Summary
-              </h4>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Monthly Fee:</span>
-                <span className="font-semibold">R{MONTHLY_FEE.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600">Pro-rata (remaining days):</span>
-                <span className="font-semibold text-[#C41230]">
-                  R{proRataAmount.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm mt-2 pt-2 border-t border-blue-200 font-bold">
-                <span>Total Due Now:</span>
-                <span className="text-[#003057]">R{proRataAmount.toFixed(2)}</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                * Recurring payment of R{MONTHLY_FEE.toFixed(2)} will be
-                charged on the 1st of each month via PayFast.
-              </p>
+              <h4 className="font-semibold text-[#003057] text-sm mb-2">Subscription Summary</h4>
+              <div className="flex justify-between text-sm"><span className="text-gray-600">Monthly Fee:</span><span className="font-semibold">R{MONTHLY_FEE.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm mt-1"><span className="text-gray-600">Pro-rata (remaining days):</span><span className="font-semibold text-[#C41230]">R{proRataAmount.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm mt-2 pt-2 border-t border-blue-200 font-bold"><span>Total Due Now:</span><span className="text-[#003057]">R{proRataAmount.toFixed(2)}</span></div>
+              <p className="text-xs text-gray-400 mt-2">* Recurring payment of R{MONTHLY_FEE.toFixed(2)} will be charged on the 1st of each month via PayFast.</p>
             </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#003057] text-white py-3.5 rounded-xl font-semibold hover:bg-[#002244] transition shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Processing..." : "Pay with PayFast"}
-            </button>
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#003057] text-white py-3.5 rounded-xl font-semibold hover:bg-[#002244] transition shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? "Processing..." : "Pay with PayFast"}</button>
           </form>
-
-          <p className="text-center text-xs text-gray-400 mt-4">
-            By subscribing, you agree to our terms and conditions.
-          </p>
+          <p className="text-center text-xs text-gray-400 mt-4">By subscribing, you agree to our terms and conditions.</p>
         </div>
       </section>
     </div>
