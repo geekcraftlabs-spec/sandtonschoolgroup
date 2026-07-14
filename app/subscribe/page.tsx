@@ -80,14 +80,11 @@ export default function SubscribePage() {
       setEmailError(null);
 
       try {
-        // Initialize EmailJS
         emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "6oVPuxhAzJ6yjPMBR");
 
-        // IMPORTANT: The recipient email is set in the EmailJS template's "To" field as {{parent_email}}
-        // This variable must match exactly what's in the template
         const templateParams = {
           parent_name: data.parentName,
-          parent_email: data.parentEmail,  // This must be set as "To" in the EmailJS template
+          parent_email: data.parentEmail,
           student_name: data.studentName,
           student_email: data.studentEmail,
           school_email: data.schoolEmail,
@@ -103,7 +100,6 @@ export default function SubscribePage() {
         console.log("📧 Sending email to:", data.parentEmail);
         console.log("📧 Template Params:", templateParams);
 
-        // Send email – the recipient is set in the EmailJS template's "To" field using {{parent_email}}
         const response = await emailjs.send(
           process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
           process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "template_subscription",
@@ -266,6 +262,7 @@ export default function SubscribePage() {
     );
   }
 
+  // Main form with login link
   return (
     <div className="pt-20" suppressHydrationWarning>
       <section className="relative min-h-[30vh] flex items-center overflow-hidden">
@@ -352,6 +349,12 @@ export default function SubscribePage() {
             </div>
             <button type="submit" disabled={isSubmitting} className="w-full bg-[#003057] text-white py-3.5 rounded-xl font-semibold hover:bg-[#002244] transition shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? "Processing..." : "Pay with PayFast"}</button>
           </form>
+          {/* Login link added below the form */}
+          <div className="text-center text-sm mt-4">
+            <Link href="/login" className="text-[#003057] hover:underline">
+              Already have an account? Log In
+            </Link>
+          </div>
           <p className="text-center text-xs text-gray-400 mt-4">By subscribing, you agree to our terms and conditions.</p>
         </div>
       </section>
