@@ -23,7 +23,6 @@ export default function Navbar() {
 
   const showCart = pathname?.startsWith("/shop") || false;
 
-  // ✅ Lazy initializer – runs only once, no effect needed
   const [token] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("authToken") || "";
@@ -47,15 +46,19 @@ export default function Navbar() {
     window.location.href = "/";
   };
 
+  // ✅ Updated Portal dropdown with live Quiz App link
   const portalDropdown = isAuthenticated
     ? [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/platform", label: "School Platform" },
-        {
+        { 
           href: token ? `https://tuckshopsystem.vercel.app/?token=${token}` : "#",
-          label: "Tuckshop",
+          label: "Tuckshop" 
         },
-        { href: "#", label: "Quiz App (coming soon)" },
+        { 
+          href: token ? `https://ssgstudyplatform.vercel.app/?token=${token}` : "#",
+          label: "Quiz App" 
+        },
         { href: "#", label: "────────────" },
         { href: "/logout", label: "Logout" },
       ]

@@ -7,7 +7,6 @@ import { useState } from "react";
 export default function DashboardPage() {
   const { user } = useAuth();
 
-  // ✅ Lazy initializer – no effect needed
   const [token] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("authToken") || "";
@@ -37,8 +36,11 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-500">Grades, reports, learning materials</p>
             </Link>
 
-            <Link
-              href="/quiz"
+            {/* ✅ Quiz App – external link with token */}
+            <a
+              href={token ? `https://ssgstudyplatform.vercel.app/?token=${token}` : "#"}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition border border-gray-100 group"
             >
               <div className="flex items-center justify-between">
@@ -47,7 +49,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="font-bold text-[#003057]">Quiz App</h3>
               <p className="text-sm text-gray-500">Interactive learning & assessments</p>
-            </Link>
+            </a>
 
             <a
               href={token ? `https://tuckshopsystem.vercel.app/?token=${token}` : "#"}
