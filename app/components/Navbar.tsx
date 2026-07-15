@@ -23,6 +23,14 @@ export default function Navbar() {
 
   const showCart = pathname?.startsWith("/shop") || false;
 
+  // ✅ Lazy initializer – runs only once, no effect needed
+  const [token] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("authToken") || "";
+    }
+    return "";
+  });
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     handleScroll();
@@ -43,7 +51,10 @@ export default function Navbar() {
     ? [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/platform", label: "School Platform" },
-        { href: "https://tuckshopsystem.vercel.app/", label: "Tuckshop" },
+        {
+          href: token ? `https://tuckshopsystem.vercel.app/?token=${token}` : "#",
+          label: "Tuckshop",
+        },
         { href: "#", label: "Quiz App (coming soon)" },
         { href: "#", label: "────────────" },
         { href: "/logout", label: "Logout" },

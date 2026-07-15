@@ -2,9 +2,18 @@
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import { useAuth } from "@/app/context/AuthContext";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+
+  // ✅ Lazy initializer – no effect needed
+  const [token] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("authToken") || "";
+    }
+    return "";
+  });
 
   return (
     <ProtectedRoute>
@@ -41,7 +50,7 @@ export default function DashboardPage() {
             </Link>
 
             <a
-              href="https://tuckshopsystem.vercel.app/"
+              href={token ? `https://tuckshopsystem.vercel.app/?token=${token}` : "#"}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition border border-gray-100 group"
