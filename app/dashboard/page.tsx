@@ -1,7 +1,6 @@
 "use client";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import { useAuth } from "@/app/context/AuthContext";
-import Link from "next/link";
 import { useState } from "react";
 
 export default function DashboardPage() {
@@ -24,8 +23,11 @@ export default function DashboardPage() {
           <p className="text-gray-500 mb-8">Your portal resources are unlocked:</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link
-              href="/platform"
+            {/* ✅ School Platform – external link with token */}
+            <a
+              href={token ? `https://ssgstudenthub.vercel.app/?token=${token}` : "#"}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition border border-gray-100 group"
             >
               <div className="flex items-center justify-between">
@@ -34,7 +36,7 @@ export default function DashboardPage() {
               </div>
               <h3 className="font-bold text-[#003057]">School Platform</h3>
               <p className="text-sm text-gray-500">Grades, reports, learning materials</p>
-            </Link>
+            </a>
 
             {/* ✅ Quiz App – external link with token */}
             <a
