@@ -4,11 +4,9 @@ import Subscription from "@/app/models/Subscription";
 
 // WhatsApp notification helper using CallMeBot
 async function sendWhatsAppNotification(message: string) {
-  const phone = "27684858415"; // Your WhatsApp number (without +)
-  const apiKey = "3802479"; // Your CallMeBot API key
-
+  const phone = "27684858415";
+  const apiKey = "3802479";
   try {
-    // CallMeBot WhatsApp API endpoint
     const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
     const response = await fetch(url);
     const result = await response.text();
@@ -85,7 +83,7 @@ School Email: ${student.schoolEmail}
 Grade: ${student.studentGrade}
 Amount: R${proRataAmount.toFixed(2)}
 
-Login at: https://sandton-school-group.vercel.app/login
+Login at: https://sandtonschoolgroup.vercel.app/login
     `.trim();
 
     await sendWhatsAppNotification(whatsappMessage);
@@ -93,7 +91,9 @@ Login at: https://sandton-school-group.vercel.app/login
 
     const merchantId = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || "10051618";
     const merchantKey = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || "yd0atu6cfp3ee";
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.headers.get("origin") || "http://localhost:3000";
+    
+    // ✅ FIX: Remove trailing slash from baseUrl
+    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || request.headers.get("origin") || "http://localhost:3000").replace(/\/+$/, "");
 
     const amount = proRataAmount.toFixed(2);
     const itemName = `Sandton School Group - Monthly Subscription (${student.studentName})`;
@@ -104,7 +104,7 @@ Login at: https://sandton-school-group.vercel.app/login
       merchant_key: merchantKey,
       return_url: `${baseUrl}/subscribe?code=${shortCode}&status=success`,
       cancel_url: `${baseUrl}/subscribe?status=cancel`,
-      notify_url: `${baseUrl}/api/payfast/itn`,
+      notify_url: `${baseUrl}/api/payfast/itn`, // <-- now correctly formed
       amount: amount,
       item_name: itemName,
       item_description: itemDescription,
