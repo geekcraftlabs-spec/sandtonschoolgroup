@@ -74,6 +74,7 @@ export default function SubscribePage() {
     return Math.round(dailyRate * remainingDays * 100) / 100;
   }, []);
 
+  // ✅ Moved ABOVE the useEffect that calls it
   const sendConfirmationEmail = useCallback(
     async (data: PendingSubscription) => {
       setEmailSending(true);
@@ -98,7 +99,6 @@ export default function SubscribePage() {
         };
 
         console.log("📧 Sending email to:", data.parentEmail);
-        console.log("📧 Template Params:", templateParams);
 
         const response = await emailjs.send(
           process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "service_n5az7zq",
@@ -121,31 +121,57 @@ export default function SubscribePage() {
     [orderCode]
   );
 
+  // ✅ SINGLE EFFECT: Handles activation, data loading, and email sending
   useEffect(() => {
-    if (isSuccess && !processedRef.current) {
-      processedRef.current = true;
-      const pending = localStorage.getItem("pendingSubscription");
-      if (pending) {
-        try {
-          const data: PendingSubscription = JSON.parse(pending);
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setSubscriptionData(data);
-          const credentials = {
-            email: data.parentEmail,
-            password: data.password,
-            studentName: data.studentName,
-            studentEmail: data.studentEmail,
-            schoolEmail: data.schoolEmail,
-          };
-          localStorage.setItem("userCredentials", JSON.stringify(credentials));
-          sendConfirmationEmail(data);
-        } catch (e) {
-          console.error("Failed to load subscription data:", e);
-        }
-      }
+    if (!isSuccess || processedRef.current) return;
+    processedRef.current = true;
+
+    const pending = localStorage.getItem("pendingSubscription");
+    if (!pending) return;
+
+    try {
+      const data: PendingSubscription = JSON.parse(pending);
+      
+      // ✅ Safe: effect runs only once, guarded by ref
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSubscriptionData(data);
+      setOrderCode(data.orderCode || orderCode);
+
+      // Save credentials for login
+      const credentials = {
+        email: data.parentEmail,
+        password: data.password,
+        studentName: data.studentName,
+        studentEmail: data.studentEmail,
+        schoolEmail: data.schoolEmail,
+      };
+      localStorage.setItem("userCredentials", JSON.stringify(credentials));
+
+      // 1. Auto-activate the subscription
+      fetch("/api/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderCode: data.orderCode }),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) {
+            console.log("✅ Subscription activated automatically:", data.orderCode);
+          } else {
+            console.error("Activation failed:", result.error);
+          }
+        })
+        .catch((err) => console.error("Activation request error:", err));
+
+      // 2. Send confirmation email
+      sendConfirmationEmail(data);
+
       localStorage.removeItem("pendingSubscription");
+    } catch (e) {
+      console.error("Failed to load subscription data:", e);
     }
-  }, [isSuccess, sendConfirmationEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,6 +231,7 @@ export default function SubscribePage() {
     }
   };
 
+  // Success UI
   if (isSuccess && subscriptionData) {
     return (
       <div className="pt-20 min-h-[70vh] flex items-center justify-center px-6">
@@ -262,7 +289,6 @@ export default function SubscribePage() {
     );
   }
 
-  // Main form with login link
   return (
     <div className="pt-20" suppressHydrationWarning>
       <section className="relative min-h-[30vh] flex items-center overflow-hidden">
@@ -349,11 +375,8 @@ export default function SubscribePage() {
             </div>
             <button type="submit" disabled={isSubmitting} className="w-full bg-[#003057] text-white py-3.5 rounded-xl font-semibold hover:bg-[#002244] transition shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? "Processing..." : "Pay with PayFast"}</button>
           </form>
-          {/* Login link added below the form */}
           <div className="text-center text-sm mt-4">
-            <Link href="/login" className="text-[#003057] hover:underline">
-              Already have an account? Log In
-            </Link>
+            <Link href="/login" className="text-[#003057] hover:underline">Already have an account? Log In</Link>
           </div>
           <p className="text-center text-xs text-gray-400 mt-4">By subscribing, you agree to our terms and conditions.</p>
         </div>
