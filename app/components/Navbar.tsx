@@ -46,22 +46,12 @@ export default function Navbar() {
     window.location.href = "/";
   };
 
-  // ✅ Updated Portal dropdown with external School Platform link
   const portalDropdown = isAuthenticated
     ? [
         { href: "/dashboard", label: "Dashboard" },
-        { 
-          href: token ? `https://ssgstudenthub.vercel.app/?token=${token}` : "#",
-          label: "School Platform" 
-        },
-        { 
-          href: token ? `https://tuckshopsystem.vercel.app/?token=${token}` : "#",
-          label: "Tuckshop" 
-        },
-        { 
-          href: token ? `https://ssgstudyplatform.vercel.app/?token=${token}` : "#",
-          label: "Quiz App" 
-        },
+        { href: "https://ssgstudenthub.vercel.app/?token=" + token, label: "School Platform" },
+        { href: "https://tuckshopsystem.vercel.app/?token=" + token, label: "Tuckshop" },
+        { href: "https://ssgstudyplatform.vercel.app/?token=" + token, label: "Quiz App" },
         { href: "#", label: "────────────" },
         { href: "/logout", label: "Logout" },
       ]
@@ -73,7 +63,14 @@ export default function Navbar() {
   const navLinks: NavLink[] = [
     { label: "Portal", dropdown: portalDropdown },
     { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
+    // ✅ About is now a dropdown with two items
+    {
+      label: "About",
+      dropdown: [
+        { href: "/about", label: "About Us" },
+        { href: "/team", label: "Our Team" },
+      ],
+    },
     {
       label: "Schools",
       dropdown: [
@@ -127,7 +124,6 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
             {navLinks.map((link, idx) => {
               if (link.dropdown) {
@@ -193,7 +189,6 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* CTA Buttons + Cart */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
             {showCart && (
               <Link href="/cart" className="relative hover:text-[#C41230] transition">
@@ -219,7 +214,6 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Hamburger */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="lg:hidden w-10 h-10 flex flex-col justify-center items-center gap-1.5 cursor-pointer shrink-0 ml-2"
@@ -244,7 +238,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="lg:hidden bg-white border-b border-gray-200 shadow-lg max-h-[80vh] overflow-y-auto">
           <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col gap-1">
